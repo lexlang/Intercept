@@ -25,7 +25,15 @@ public class App
 
     	HttpProxyServerConfig serverConfig=new HttpProxyServerConfig();
         serverConfig.setHandleSsl(true);
-    	new ProxyServer().serverConfig(serverConfig).start(7777);
+    	new ProxyServer().serverConfig(serverConfig)
+    	                 .interceptConfig(new Intercept(){
+    	                	    @Override
+    	                	    public WebResponse getResponse(WebRequest request) throws IOException {
+    	                	    	   String url=request.getUrl().toString();
+    	                	    	   System.out.println(url);
+    	                	    	   return super.getResponse(request);
+    	                	    }
+    	                 }).start(7777);
     	
     }
 }
