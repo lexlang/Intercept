@@ -42,7 +42,7 @@ public class Intercept{
     	if(responseStore.containsKey(url)){
     		return responseStore.get(url);
     	}else{
-    		HttpWebConnection connection=new HttpWebConnection(new ConnectionOption());
+    		HttpWebConnection connection=new HttpWebConnection(new ConnectionOption().setTimeOut(5000));
             WebResponse response=connection.getResponse(request);
             if(storeResponseOrNot(url)){
             	responseStore.put(url, response);
