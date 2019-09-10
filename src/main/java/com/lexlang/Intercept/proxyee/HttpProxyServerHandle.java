@@ -17,6 +17,7 @@ import com.github.monkeywie.proxyee.server.HttpProxyServer;
 import com.github.monkeywie.proxyee.server.HttpProxyServerConfig;
 import com.github.monkeywie.proxyee.util.ProtoUtil;
 import com.github.monkeywie.proxyee.util.ProtoUtil.RequestProto;
+import com.lexlang.Intercept.Intercept;
 import com.lexlang.Intercept.connection.ConnectionOption;
 import com.lexlang.Intercept.connection.HttpWebConnection;
 
@@ -72,13 +73,15 @@ public class HttpProxyServerHandle extends ChannelInboundHandlerAdapter {
   private RequestPara para=new RequestPara();
   private HttpProxyExceptionHandle exceptionHandle;
   private HttpProxyServerConfig serverConfig;
-
-  public HttpProxyServerHandle(HttpProxyServerConfig serverConfig, HttpProxyExceptionHandle exceptionHandle) {
+  private Intercept intercept;
+  
+  public HttpProxyServerHandle(HttpProxyServerConfig serverConfig, HttpProxyExceptionHandle exceptionHandle,Intercept intercept) {
 		this.exceptionHandle=exceptionHandle;
 		this.serverConfig=serverConfig;
+		this.intercept=intercept;
   }
 
-@Override
+  @Override
   public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
     if (msg instanceof HttpRequest) {
       HttpRequest request = (HttpRequest) msg;
@@ -158,10 +161,10 @@ public class HttpProxyServerHandle extends ChannelInboundHandlerAdapter {
   
   public void beforeRequest(Channel clientChannel,HttpRequest httpRequest, HttpContent httpContent,boolean isSSL) throws Exception {
 	  WebRequest webRequest=turnHttpRequestToWebRequest(httpRequest, httpContent,isSSL);
-	  HttpWebConnection connection=new HttpWebConnection(new ConnectionOption());
-  	  WebResponse response = connection.getResponse(webRequest);
+  	  WebResponse response = intercept.getResponse(webRequest);
   	  //输出
-  	  clientChannel.writeAndFlush(getHttpResponse(response)).addListener(ChannelFutureListener.CLOSE);
+  	  clientChannel.writeAndFlush(getHttpResponse(response))
+  	               .addListener(ChannelFutureListener.CLOSE);
   }
   
   private WebRequest turnHttpRequestToWebRequest(HttpRequest request, HttpContent httpContent,boolean isSSL) throws MalformedURLException{

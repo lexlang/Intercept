@@ -8,6 +8,7 @@ import com.github.monkeywie.proxyee.intercept.HttpProxyInterceptInitializer;
 import com.github.monkeywie.proxyee.proxy.ProxyConfig;
 import com.github.monkeywie.proxyee.server.HttpProxyCACertFactory;
 import com.github.monkeywie.proxyee.server.HttpProxyServerConfig;
+import com.lexlang.Intercept.Intercept;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -40,8 +41,13 @@ public class ProxyServer {
 
   private EventLoopGroup bossGroup;
   private EventLoopGroup workerGroup;
-
+  private Intercept intercept;
+  
   private void init() {
+	if(intercept == null){
+		intercept=new Intercept();
+	}  
+	
     if (serverConfig == null) {
       serverConfig = new HttpProxyServerConfig();
     }
@@ -101,6 +107,11 @@ public class ProxyServer {
     this.httpProxyExceptionHandle = httpProxyExceptionHandle;
     return this;
   }
+  
+  public ProxyServer interceptConfig(Intercept intercept){
+	  this.intercept=intercept;
+	  return this;
+  }
 
   public ProxyServer proxyConfig(ProxyConfig proxyConfig) {
     this.proxyConfig = proxyConfig;
@@ -127,7 +138,7 @@ public class ProxyServer {
             @Override
             protected void initChannel(Channel ch) throws Exception {
               ch.pipeline().addLast("httpCodec", new HttpServerCodec());
-              ch.pipeline().addLast("serverHandle",new HttpProxyServerHandle(serverConfig,httpProxyExceptionHandle));
+              ch.pipeline().addLast("serverHandle",new HttpProxyServerHandle(serverConfig,httpProxyExceptionHandle,intercept));
             }
           });
       ChannelFuture f = b
