@@ -59,6 +59,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -170,7 +171,6 @@ public class HttpProxyServerHandle extends ChannelInboundHandlerAdapter {
   private WebRequest turnHttpRequestToWebRequest(HttpRequest request, HttpContent httpContent,boolean isSSL) throws MalformedURLException{
 		String method=request.getMethod().name().toUpperCase();
 		String url = (isSSL?"https://":"http://")+request.headers().get(HttpHeaderNames.HOST)+request.getUri();
-		System.out.println(url);
 		HttpHeaders rhds = request.headers();
 		List<Entry<String, String>> hds = rhds.entries();
 		//构造url
@@ -201,24 +201,31 @@ public class HttpProxyServerHandle extends ChannelInboundHandlerAdapter {
 		//消息头
 	   FullHttpResponse httpHeader = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.valueOf(response.getStatusCode()));
 	   List<NameValuePair> hds = response.getResponseHeaders();
-	   List<String> cks=new ArrayList<String>();
+	   HashMap<String, ArrayList<String>> storeHds = new HashMap<String,ArrayList<String>>();
+	   //
 	   for(int i=0;i<hds.size();i++){
 			NameValuePair item = hds.get(i);
-			if(item.getName().equals("Content-Encoding") || item.getName().equals("Transfer-Encoding")){
+			if(item.getName().equals("Content-Encoding") || item.getName().equals("Transfer-Encoding") || item.getName().equals("Content-Length")){
 				continue;
+			}else{
+				String name = item.getName();
+				if(storeHds.containsKey(name)){
+					storeHds.get(name).add(item.getValue());
+				}else{
+					ArrayList<String> cks=new ArrayList<String>();
+					cks.add(item.getValue());
+					storeHds.put(name, cks);
+				}
 			}
-			if(item.getName().equals("Set-Cookie")){
-				cks.add(item.getValue());
-			}
-			else{
-				httpHeader.headers().add(item.getName(), item.getValue());
-			}
-	   }
-	   if(cks.size()>0){
-			httpHeader.headers().add("Set-Cookie", cks);
 	   }
 	   
-	   httpHeader.content().writeBytes(getByte(response.getContentAsStream()));
+	   for(String name:storeHds.keySet()){
+		   httpHeader.headers().add(name, storeHds.get(name));
+	   }
+
+	   byte[] outStream=getByte(response.getContentAsStream());
+	   httpHeader.headers().add("Content-Length", outStream.length);
+	   httpHeader.content().writeBytes(outStream);
 	   return httpHeader;
   }
   
